@@ -159,12 +159,194 @@ A persistent sidebar table showing all files sorted by severity descending, then
 
 | Phase | Feature |
 |:------|:--------|
-| Phase 5 | Project selector with recently-scanned list |
+| Phase 5 | Menus, Undo/Redo, Project Overlay, and UX Polish ✅ |
 | Phase 6 | Manual override of file role and responsibilities |
 | Phase 7 | "Refactor Suggestions" AI panel (highlight which files to split and how) |
 | Phase 8 | Git diff mode — show which files *changed* in a PR and their health before/after |
 | Phase 9 | Export architecture diagram as SVG/PNG |
 | Phase 10 | Multi-project comparison view |
+
+---
+
+## Phase 5 — Menus, Undo/Redo, Project Overlay, and UX Polish ✅
+
+**Status:** Complete (Feb 21, 2026)
+**Branch:** `feature/phase5-menus-undo-overlay`
+
+### Deliverables
+
+#### 5A. Right-Click Canvas Pan
+- Pan the graph with **right-click + drag** (previously left-click)
+- Left-click is now reserved solely for node selection
+- Browser context menu suppressed on the canvas via `onContextMenu`
+- ReactFlow `panOnDrag={[2]}` — mouse button 2 = right-click
+
+#### 5B. Undo / Redo History
+- Dragging a node records the pre-drag snapshot to a history stack
+- **Ctrl+Z** undoes the last node move
+- **Ctrl+Y** / **Ctrl+Shift+Z** redoes the last undone move
+- History stacks are per-session (cleared on new scan)
+- Menu bar Edit → Undo / Redo shows greyed-out state when stack is empty
+
+#### 5C. Menu Bar (File / Edit / Help)
+A native-style dark menu bar row sits above the toolbar.
+
+**File menu:**
+- Re-scan Project (Ctrl+R) — rescans the last path
+- Export as Markdown (Ctrl+E) — risk-sorted table ideal for agents
+- Export as CSV — spreadsheet-friendly
+- Export as JSON — machine-readable full data payload
+
+**Edit menu:**
+- Undo (Ctrl+Z) — disabled when history is empty
+- Redo (Ctrl+Y) — disabled when future stack is empty
+- Fit to View (Ctrl+Shift+F) — smoothly re-fits all nodes
+
+**Help menu:**
+- Keyboard Shortcuts & Controls — scrollable visual guide modal
+- About ArchPulse — tech stack, health thresholds, credits
+
+#### 5D. Export Report
+The Markdown export generates a structured agent-friendly report:
+- Project metadata (name, path, scan time, totals)
+- Health summary table (tier counts)
+- Full file audit table sorted by **highest risk first**
+  - Columns: Rank, File, Role, Lines, Health, Imports, Top Responsibilities
+
+CSV and JSON exports follow the same risk-sorted ordering.
+
+#### 5E. Project Info Overlay
+A frosted-glass card anchored to the **top-left of the canvas** shows:
+- Project name
+- Truncated folder path
+- Total files + total lines
+- Health Badge strip (🚨 N, ⚠️ N, 🔴 N, 🟡 N, 🟢 N)
+- "X at risk" count + relative scan time ("just now", "3m ago", …)
+- `pointer-events-none` — never blocks graph interaction
+
+#### 5F. Modals
+- **About** — logo, description, tech stack table, health thresholds
+- **Controls Guide** — categorized card-by-card reference for all interactions
+
+---
+
+## Phase 6 — Role & Responsibility Overrides
+
+**Status:** Planned
+
+### Goals
+Allow users to manually correct auto-detected file metadata when the heuristic scanner misidentifies a file's role or responsibilities.
+
+### Key Features
+- Click a node to open a detail panel (replaces or extends health table row expansion)
+- **Role Picker** — dropdown to manually set role (component, hook, store, lib, etc.)
+- **Responsibility Editor** — editable bullet list (add/remove/reorder)
+- Overrides stored in a project-local `.archpulse.json` file (auto-created)
+- Override badge on node card (small "✎" icon indicating a manual override)
+- "Reset to auto-detected" button per field
+
+### Data Model
+```json
+// .archpulse.json
+{
+  "projectPath": "C:\\_APPS\\HouseBuilder",
+  "overrides": {
+    "src/components/ThreeEditorImpl.tsx": {
+      "role": "component",
+      "responsibilities": ["3D scene rendering", "camera controls", "user input handling"]
+    }
+  }
+}
+```
+
+---
+
+## Phase 7 — AI Refactor Suggestions Panel
+
+**Status:** Planned
+
+### Goals
+Surface concrete, actionable refactor suggestions for god components and overly-coupled files.
+
+### Key Features
+- **Refactor Panel** (collapsible, right side) shows top 3–5 files needing attention
+- Per-file suggestion cards showing:
+  - Why it's a problem (too many lines, too many responsibilities, too many dependents)
+  - Suggested split: "Extract hook `useInputLogic` → `src/hooks/useInputLogic.ts`"
+  - Estimated impact: "Would reduce `ThreeEditorImpl.tsx` by ~800 lines"
+- Suggestions generated via rule engine (Phase 7a) then optionally via LLM API (Phase 7b)
+- **Phase 7a (Rule Engine):** Pattern-based — if file >2000 lines and has multiple export types, suggest splitting; if file imports >10 others, flag coupling
+- **Phase 7b (LLM):** Optional — send file metadata to OpenAI/Claude API for narrative suggestions
+- User can dismiss a suggestion ("Not now") or mark it resolved ("Done")
+- Dismissed suggestions stored in `.archpulse.json`
+
+---
+
+## Phase 8 — Git Diff Mode
+
+**Status:** Planned
+
+### Goals
+Show which files changed in the current working tree (or a specific PR/commit) and their health before vs. after.
+
+### Key Features
+- **Diff Mode Toggle** in toolbar — requires project path to be a git repo
+- Changed files highlighted with a diff overlay:
+  - 🟩 Added (new file)
+  - 🟨 Modified (existing, changed line count)
+  - 🟥 Deleted (file removed)
+  - Line delta badge on node: `+142 lines` or `-38 lines`
+- "Health Impact" summary: "3 files got worse, 1 improved"
+- Commit selector — compare HEAD vs HEAD~1, or HEAD vs a specific branch
+- Powered by `git diff --name-status` and `git show` via API route using Node.js `child_process`
+
+### Non-Goals
+- No GitHub/GitLab API integration (local git only)
+- No patch viewing (line-level diffs)
+
+---
+
+## Phase 9 — Diagram Export (SVG / PNG)
+
+**Status:** Planned
+
+### Goals
+Export the current graph viewport as a static image for documentation, Slack shares, or architecture documentation.
+
+### Key Features
+- **Export as PNG** — rasterized at 2× for retina (via `html-to-image` or canvas capture)
+- **Export as SVG** — vector with proper node shapes and edge paths
+- Options: export "visible area only" vs "full graph (all nodes)"
+- File naming convention: `arch_{projectName}_{date}.png`
+- Exported image respects current zoom/pan state
+- Dark background preserved (not white-washed)
+- Triggered from File → Export → As Image (PNG) / As Vector (SVG)
+
+### Technical Approach
+- Use `reactflow`'s `toObject()` to get node/edge positions, then render to canvas
+- Or use `html-to-image` library on the `.react-flow__viewport` DOM element
+
+---
+
+## Phase 10 — Multi-Project Comparison
+
+**Status:** Planned
+
+### Goals
+Scan two or more projects simultaneously and compare their architecture health side-by-side.
+
+### Key Features
+- **Project Tabs** in toolbar — add up to 4 projects via "+" button
+- Each tab shows: project name + health summary badge strip
+- **Side-by-Side mode** — split the viewport vertically or horizontally, one graph per pane
+- **Overlay mode** — merge both graphs into one viewport; matched files (same name/path) are linked with dashed edges
+- **Comparison summary panel** — table of files that exist in both projects with health diff: "ThreeEditorImpl: 🟡 (HouseBuilder) vs 🔴 (OtherProject)"
+- Independent scan triggers per project tab
+- Health Audit Table shows a project column when multiple are loaded
+
+### Non-Goals
+- No cross-project dependency resolution (imports stay within each project's graph)
+- No persistent multi-project sessions
 
 ---
 
