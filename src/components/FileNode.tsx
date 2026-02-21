@@ -23,9 +23,9 @@ const ROLE_COLORS: Record<string, { border: string; badge: string; dot: string }
 
 function getPulseClass(health: string): string {
   switch (health) {
-    case "red-slow":     return "animate-pulse-slow";
-    case "red-fast":     return "animate-pulse-fast";
-    case "red-critical": return "animate-pulse-critical";
+    case "red-slow":     return "node-pulse-slow";
+    case "red-fast":     return "node-pulse-fast";
+    case "red-critical": return "node-pulse-critical";
     default:             return "";
   }
 }
