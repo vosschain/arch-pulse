@@ -25,6 +25,7 @@ export default function HomePage() {
   const [selectedNodeId, setSelectedNodeId] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [loadingToast, setLoadingToast] = useState<string | null>(null);
 
   // ── Undo / Redo ──
   const [canUndo, setCanUndo] = useState(false);
@@ -105,6 +106,7 @@ export default function HomePage() {
   const handleScan = async (folderPath: string) => {
     lastPathRef.current = folderPath;
     setIsLoading(true);
+    setLoadingToast("Scanning project…");
     setError(null);
     try {
       const res = await fetch("/api/scan", {
@@ -128,6 +130,7 @@ export default function HomePage() {
       setError(e instanceof Error ? e.message : String(e));
     } finally {
       setIsLoading(false);
+      setLoadingToast(null);
     }
   };
 
@@ -168,6 +171,7 @@ export default function HomePage() {
       return;
     }
     if (!lastPathRef.current) return;
+    setLoadingToast("Loading git diff…");
     try {
       const res = await fetch("/api/gitdiff", {
         method: "POST",
@@ -186,12 +190,15 @@ export default function HomePage() {
       }
     } catch (e) {
       setError(e instanceof Error ? e.message : "Git diff failed");
+    } finally {
+      setLoadingToast(null);
     }
   }, [gitDiffActive]);
 
   // ── PNG Export ──
   const handleExportPNG = useCallback(async () => {
     if (!graphRef.current) return;
+    setLoadingToast("Exporting PNG…");
     try {
       const { toPng } = await import("html-to-image");
       const dataUrl = await toPng(graphRef.current, { cacheBust: true, quality: 0.95 });
@@ -202,6 +209,8 @@ export default function HomePage() {
       link.click();
     } catch (e) {
       setError(e instanceof Error ? e.message : "PNG export failed");
+    } finally {
+      setLoadingToast(null);
     }
   }, [scanResult]);
 
@@ -269,7 +278,18 @@ export default function HomePage() {
 
   return (
     <div className="flex flex-col h-screen w-screen overflow-hidden">
-      {/* ── Toast ── */}
+      {/* ── Loading toast ── */}
+      {loadingToast && (
+        <div className="fixed top-4 left-1/2 -translate-x-1/2 z-50 flex items-center gap-3 px-4 py-3 rounded-lg border border-slate-600 bg-slate-900/95 shadow-xl backdrop-blur-sm">
+          <svg className="animate-spin w-4 h-4 text-sky-400 flex-shrink-0" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+            <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
+            <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z" />
+          </svg>
+          <span className="text-sm text-slate-200">{loadingToast}</span>
+        </div>
+      )}
+
+      {/* ── Error toast ── */}
       {error && (
         <div className="fixed top-4 left-1/2 -translate-x-1/2 z-50 flex items-start gap-3 px-4 py-3 rounded-lg border border-red-700 bg-red-950/90 shadow-xl backdrop-blur-sm max-w-lg w-max">
           <span className="text-red-400 text-lg leading-none mt-0.5">⚠</span>
