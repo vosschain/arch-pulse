@@ -56,3 +56,37 @@ export interface ScanResult {
   totalFiles: number;
   totalLines: number;
 }
+
+// ─── Git Diff ─────────────────────────────────────────────────────────────────
+
+export type GitDiffStatus = "added" | "modified" | "deleted" | "renamed";
+
+export interface GitDiffFile {
+  id: string;             // Relative path (same as ScannedFile.id)
+  status: GitDiffStatus;
+  linesBefore: number;    // Lines before change (0 for new files)
+  linesAfter: number;     // Lines after change (0 for deleted)
+}
+
+// ─── Role / Responsibility Overrides ─────────────────────────────────────────
+
+export interface FileOverride {
+  role?: FileRole;
+  responsibilities?: string[];
+}
+
+export type OverrideMap = Record<string, FileOverride>;
+
+// ─── Refactor Suggestions ─────────────────────────────────────────────────────
+
+export type SuggestionSeverity = "high" | "medium" | "low";
+
+export interface RefactorSuggestion {
+  fileId: string;
+  fileName: string;
+  health: HealthStatus;
+  reason: string;
+  suggestion: string;
+  severity: SuggestionSeverity;
+  estimatedLineReduction?: number;
+}

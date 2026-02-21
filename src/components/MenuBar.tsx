@@ -1,4 +1,4 @@
-"use client";
+﻿"use client";
 
 import { useState, useEffect, useRef, useCallback } from "react";
 import type { ScanResult } from "@/types";
@@ -12,10 +12,15 @@ interface MenuBarProps {
   scanResult: ScanResult | null;
   canUndo: boolean;
   canRedo: boolean;
+  selectedNodeId: string | null;
+  gitDiffActive: boolean;
   onUndo: () => void;
   onRedo: () => void;
   onRescan: () => void;
   onFitView: () => void;
+  onFocusSelected: () => void;
+  onExportPNG: () => void;
+  onToggleGitDiff: () => void;
   onOpenModal: (modal: ModalTarget) => void;
 }
 
@@ -27,6 +32,7 @@ type MenuAction = {
   label: string;
   shortcut?: string;
   disabled?: boolean;
+  checked?: boolean;
   action: () => void;
 };
 type MenuItem = MenuSeparator | MenuAction;
@@ -37,10 +43,15 @@ export default function MenuBar({
   scanResult,
   canUndo,
   canRedo,
+  selectedNodeId,
+  gitDiffActive,
   onUndo,
   onRedo,
   onRescan,
   onFitView,
+  onFocusSelected,
+  onExportPNG,
+  onToggleGitDiff,
   onOpenModal,
 }: MenuBarProps) {
   const [openMenu, setOpenMenu] = useState<string | null>(null);
@@ -97,6 +108,13 @@ export default function MenuBar({
           disabled: !scanResult,
           action: () => handleExport("json"),
         },
+        { type: "separator" },
+        {
+          type: "action",
+          label: "Export as PNG",
+          disabled: !scanResult,
+          action: () => { setOpenMenu(null); onExportPNG(); },
+        },
       ],
     },
     {
@@ -124,6 +142,27 @@ export default function MenuBar({
           shortcut: "Ctrl+Shift+F",
           disabled: !scanResult,
           action: () => { setOpenMenu(null); onFitView(); },
+        },
+        {
+          type: "action",
+          label: "Focus Selected",
+          shortcut: "F",
+          disabled: !selectedNodeId,
+          action: () => { setOpenMenu(null); onFocusSelected(); },
+        },
+      ],
+    },
+    {
+      id: "view",
+      label: "View",
+      items: [
+        {
+          type: "action",
+          label: gitDiffActive ? "✓ Git Diff Mode" : "Git Diff Mode",
+          shortcut: "Ctrl+D",
+          disabled: !scanResult,
+          checked: gitDiffActive,
+          action: () => { setOpenMenu(null); onToggleGitDiff(); },
         },
       ],
     },
@@ -206,7 +245,7 @@ export default function MenuBar({
                       item.disabled
                         ? "text-slate-600 cursor-not-allowed"
                         : "text-slate-300 hover:bg-slate-700/60 hover:text-slate-100"
-                    }`}
+                    } ${item.checked ? "text-sky-400" : ""}`}
                   >
                     <span>{item.label}</span>
                     {item.shortcut && (

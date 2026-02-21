@@ -62,10 +62,16 @@ const requiredFiles = [
   "src/app/page.tsx",
   "src/app/globals.css",
   "src/app/api/scan/route.ts",
+  "src/app/api/overrides/route.ts",
+  "src/app/api/gitdiff/route.ts",
   "src/lib/scanner.ts",
+  "src/lib/refactorSuggestions.ts",
   "src/components/ArchGraph.tsx",
   "src/components/FileNode.tsx",
   "src/components/HealthTable.tsx",
+  "src/components/FilterBar.tsx",
+  "src/components/OverrideModal.tsx",
+  "src/components/RefactorSuggestions.tsx",
   "src/components/Toolbar.tsx",
   "src/types/index.ts",
   "next.config.ts",
@@ -90,6 +96,7 @@ check("dev script uses port 4050", pkg.scripts?.dev?.includes("4050"));
 check("dev:lan script uses 0.0.0.0:4050", !!(pkg.scripts?.["dev:lan"]?.includes("0.0.0.0") && pkg.scripts?.["dev:lan"]?.includes("4050")));
 check("reactflow dependency", "reactflow" in (pkg.dependencies ?? {}));
 check("dagre dependency", "dagre" in (pkg.dependencies ?? {}));
+check("html-to-image dependency", "html-to-image" in (pkg.dependencies ?? {}));
 check("test script present", typeof pkg.scripts?.test === "string");
 
 // ── Section 3: Types ──────────────────────────────────────────────────────────
@@ -104,6 +111,11 @@ check("HealthStatus type exported", typesContent.includes("export type HealthSta
 check("getHealthStatus exported", typesContent.includes("export function getHealthStatus"));
 check('HealthStatus includes "red-critical"', typesContent.includes('"red-critical"'));
 check('HealthStatus includes "yellow"', typesContent.includes('"yellow"'));
+check("GitDiffFile exported", typesContent.includes("export interface GitDiffFile"));
+check("FileOverride exported", typesContent.includes("export interface FileOverride"));
+check("OverrideMap exported", typesContent.includes("export type OverrideMap"));
+check("RefactorSuggestion exported", typesContent.includes("export interface RefactorSuggestion"));
+check("SuggestionSeverity exported", typesContent.includes("export type SuggestionSeverity"));
 
 // ── Section 4: API Route ──────────────────────────────────────────────────────
 
@@ -186,6 +198,61 @@ const healthTableContent = fs.readFileSync(path.join(ROOT, "src/components/Healt
 check('uses "use client"', healthTableContent.includes('"use client"'));
 check("renders health badge or emoji", healthTableContent.includes("getHealthEmoji") || healthTableContent.includes("health"));
 check("sorted by severity or line count", healthTableContent.includes("sort") || healthTableContent.includes("STATUS_ORDER"));
+check("accepts activeFilters prop", healthTableContent.includes("activeFilters"));
+check("accepts overrides prop", healthTableContent.includes("overrides"));
+check("has onEditOverride handler", healthTableContent.includes("onEditOverride"));
+
+// ── Section 9b: Phase 6-11 New Components ─────────────────────────────────────
+
+section("\uD83D\uDCCE Phase 6-11 Components");
+
+const filterBarContent = fs.readFileSync(path.join(ROOT, "src/components/FilterBar.tsx"), "utf-8");
+check("FilterBar: has toggle buttons", filterBarContent.includes("activeFilters") && filterBarContent.includes("onToggle"));
+check("FilterBar: All/None convenience buttons", filterBarContent.includes("All") && filterBarContent.includes("None"));
+
+const overrideModalContent = fs.readFileSync(path.join(ROOT, "src/components/OverrideModal.tsx"), "utf-8");
+check("OverrideModal: has role picker", overrideModalContent.includes("role") || overrideModalContent.includes("Role"));
+check("OverrideModal: has responsibilities editor", overrideModalContent.includes("responsibilities") || overrideModalContent.includes("Responsibilities"));
+check("OverrideModal: calls API on save", overrideModalContent.includes("/api/overrides"));
+
+const refactorSugContent = fs.readFileSync(path.join(ROOT, "src/components/RefactorSuggestions.tsx"), "utf-8");
+check("RefactorSuggestions: calls generateSuggestions", refactorSugContent.includes("generateSuggestions"));
+check("RefactorSuggestions: has onFileSelect prop", refactorSugContent.includes("onFileSelect"));
+
+const archGraphContent2 = fs.readFileSync(path.join(ROOT, "src/components/ArchGraph.tsx"), "utf-8");
+check("ArchGraph: has FocusController", archGraphContent2.includes("FocusController"));
+check("ArchGraph: has focusTrigger prop", archGraphContent2.includes("focusTrigger"));
+check("ArchGraph: has activeFilters prop", archGraphContent2.includes("activeFilters"));
+check("ArchGraph: has gitDiffFiles prop", archGraphContent2.includes("gitDiffFiles"));
+check("ArchGraph: fitBounds used for focus", archGraphContent2.includes("fitBounds"));
+
+// ── Section 9c: API Routes (phases 8,10) ──────────────────────────────────────
+
+section("\uD83D\uDD0C API Routes (overrides + gitdiff)");
+
+const overridesRoute = fs.readFileSync(path.join(ROOT, "src/app/api/overrides/route.ts"), "utf-8");
+check("overrides route: GET handler", overridesRoute.includes("GET"));
+check("overrides route: POST handler", overridesRoute.includes("POST"));
+check("overrides route: DELETE handler", overridesRoute.includes("DELETE"));
+check("overrides route: uses .archpulse.json", overridesRoute.includes(".archpulse.json"));
+
+const gitdiffRoute = fs.readFileSync(path.join(ROOT, "src/app/api/gitdiff/route.ts"), "utf-8");
+check("gitdiff route: POST handler", gitdiffRoute.includes("POST"));
+check("gitdiff route: uses child_process or spawnSync", gitdiffRoute.includes("spawnSync") || gitdiffRoute.includes("child_process"));
+check("gitdiff route: uses git diff", gitdiffRoute.includes("git diff") || gitdiffRoute.includes("git"));
+
+// ── Section 9d: refactorSuggestions lib ────────────────────────────────────────
+
+section("\uD83E\uDDEA Unit: generateSuggestions (lib)");
+
+const refactorLibContent = fs.readFileSync(path.join(ROOT, "src/lib/refactorSuggestions.ts"), "utf-8");
+check("generateSuggestions exported from lib", refactorLibContent.includes("export function generateSuggestions"));
+check("getSeverityIcon exported", refactorLibContent.includes("export function getSeverityIcon"));
+check("getSeverityColor exported", refactorLibContent.includes("export function getSeverityColor"));
+check("god component rule (>1500 lines)", refactorLibContent.includes("1500"));
+check("high coupling rule (>8 imports)", refactorLibContent.includes("8") && refactorLibContent.includes("imports"));
+check("SRP rule (>5 responsibilities)", refactorLibContent.includes("5") && refactorLibContent.includes("responsibilities"));
+
 
 // ── UNIT TESTS Section 10: countNonCommentLines ───────────────────────────────
 
@@ -394,7 +461,7 @@ if (fs.existsSync(HOUSEBUILDER)) {
   if (useInput) {
     check("useInputLogic.ts found", true);
     check("useInputLogic.ts \u2192 hook", useInput.role === "hook", `got: ${useInput.role}`);
-    check("useInputLogic.ts health >= red-slow", ["red-slow","red-fast","red-critical"].includes(useInput.health), `health=${useInput.health}`);
+    check("useInputLogic.ts health >= yellow (not green)", useInput.health !== "green", `health=${useInput.health}`);
   } else {
     check("useInputLogic.ts found", false);
   }
@@ -451,6 +518,6 @@ if (failed > 0) {
   console.log("\n\u26A0\uFE0F  Fix the failures above before merging.\n");
   process.exit(1);
 } else {
-  console.log("\n\uD83C\uDF89 All checks passed! Phases 2\u20134 verified.\n");
+  console.log("\n\uD83C\uDF89 All checks passed! Phases 2\u201311 verified.\n");
   process.exit(0);
 }

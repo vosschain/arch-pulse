@@ -303,3 +303,19 @@ export function scanProject(folderPath: string): ScanResult {
     totalLines: files.reduce((sum, f) => sum + f.lines, 0),
   };
 }
+
+// ─── Host Path Resolution (Windows paths → /mnt/X on Docker/Linux) ───────────
+
+import os from "os";
+
+export function resolveHostPath(inputPath: string): string {
+  if (os.platform() !== "win32" && !inputPath.match(/^[A-Za-z]:[/\\]/)) return inputPath;
+  if (os.platform() === "win32") return inputPath;
+  const match = inputPath.match(/^([A-Za-z]):[/\\]?(.*)$/);
+  if (match) {
+    const drive = match[1].toLowerCase();
+    const rest = match[2].replace(/\\/g, "/");
+    return `/mnt/${drive}/${rest}`;
+  }
+  return inputPath;
+}

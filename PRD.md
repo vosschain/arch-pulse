@@ -230,20 +230,54 @@ A frosted-glass card anchored to the **top-left of the canvas** shows:
 
 ---
 
-## Phase 6 — Role & Responsibility Overrides
+## Phase 6 — Focus Mode (F Key) ✅
 
-**Status:** Planned
+**Status:** ✅ Complete
+
+### Goals
+Let users instantly zoom in and center the canvas on a selected node using the keyboard.
+
+### Key Features
+- **F key** — when a node is selected, press F to fit-and-center the view on that node
+- Smooth animation (500 ms ease) via React Flow `fitBounds`
+- Also accessible from Edit → Focus Selected (F) in the menu bar
+- Works from both canvas selection and health table row selection
+- Disabled when no node is selected
+
+---
+
+## Phase 7 — Health Status Filters ✅
+
+**Status:** ✅ Complete
+
+### Goals
+Give users a fast way to visually isolate specific health tiers in the graph.
+
+### Key Features
+- **FilterBar** — horizontal button strip below the toolbar (only shown after a scan)
+- One toggle button per health tier: Critical / Danger / Warning / Caution / Healthy
+- Shows file count per tier; hides tiers with 0 files
+- Enabled by default; clicking a button toggles that tier off → nodes + connected edges fade to 15% opacity
+- **All** and **None** convenience buttons for quick select/deselect
+- Filter state synced to HealthTable rows (faded rows match faded nodes)
+
+---
+
+## Phase 8 — Role & Responsibility Overrides ✅
+
+**Status:** ✅ Complete
 
 ### Goals
 Allow users to manually correct auto-detected file metadata when the heuristic scanner misidentifies a file's role or responsibilities.
 
 ### Key Features
-- Click a node to open a detail panel (replaces or extends health table row expansion)
+- **Double-click a node** (or click the ✎ button on a HealthTable row) to open the Override Modal
 - **Role Picker** — dropdown to manually set role (component, hook, store, lib, etc.)
-- **Responsibility Editor** — editable bullet list (add/remove/reorder)
+- **Responsibility Editor** — editable bullet list (add/remove)
 - Overrides stored in a project-local `.archpulse.json` file (auto-created)
-- Override badge on node card (small "✎" icon indicating a manual override)
-- "Reset to auto-detected" button per field
+- Override badge on node card (`✎` icon) and in HealthTable
+- "Reset to auto-detected" button per file
+- Overrides auto-loaded after each scan via `GET /api/overrides`
 
 ### Data Model
 ```json
@@ -261,44 +295,41 @@ Allow users to manually correct auto-detected file metadata when the heuristic s
 
 ---
 
-## Phase 7 — AI Refactor Suggestions Panel
+## Phase 9 — Refactor Suggestions Panel ✅
 
-**Status:** Planned
+**Status:** ✅ Complete
 
 ### Goals
 Surface concrete, actionable refactor suggestions for god components and overly-coupled files.
 
 ### Key Features
-- **Refactor Panel** (collapsible, right side) shows top 3–5 files needing attention
-- Per-file suggestion cards showing:
-  - Why it's a problem (too many lines, too many responsibilities, too many dependents)
-  - Suggested split: "Extract hook `useInputLogic` → `src/hooks/useInputLogic.ts`"
-  - Estimated impact: "Would reduce `ThreeEditorImpl.tsx` by ~800 lines"
-- Suggestions generated via rule engine (Phase 7a) then optionally via LLM API (Phase 7b)
-- **Phase 7a (Rule Engine):** Pattern-based — if file >2000 lines and has multiple export types, suggest splitting; if file imports >10 others, flag coupling
-- **Phase 7b (LLM):** Optional — send file metadata to OpenAI/Claude API for narrative suggestions
-- User can dismiss a suggestion ("Not now") or mark it resolved ("Done")
-- Dismissed suggestions stored in `.archpulse.json`
+- **Suggestions tab** in right panel — second tab next to Health
+- Per-file suggestion cards showing severity icon (🚨 ⚠️ 💡), reason, and suggested action
+- Rule engine (no LLM required) evaluates 3 rules:
+  - **God Component:** >1500 lines → medium, >3000 lines → high
+  - **High Coupling:** >8 imports → low/medium
+  - **SRP Violation:** >5 responsibilities on files >500 lines → medium
+- "Jump to node" link selects the file in the canvas
+- Summary badges at panel top (high / medium / low counts)
 
 ---
 
-## Phase 8 — Git Diff Mode
+## Phase 10 — Git Diff Mode ✅
 
-**Status:** Planned
+**Status:** ✅ Complete
 
 ### Goals
-Show which files changed in the current working tree (or a specific PR/commit) and their health before vs. after.
+Show which files changed in the current working tree and highlight them on the canvas.
 
 ### Key Features
-- **Diff Mode Toggle** in toolbar — requires project path to be a git repo
-- Changed files highlighted with a diff overlay:
-  - 🟩 Added (new file)
-  - 🟨 Modified (existing, changed line count)
-  - 🟥 Deleted (file removed)
-  - Line delta badge on node: `+142 lines` or `-38 lines`
-- "Health Impact" summary: "3 files got worse, 1 improved"
-- Commit selector — compare HEAD vs HEAD~1, or HEAD vs a specific branch
-- Powered by `git diff --name-status` and `git show` via API route using Node.js `child_process`
+- **Git Diff Mode Toggle** — View → Git Diff Mode (Ctrl+D)
+- Changed files highlighted with colored badge on node:
+  - 🟩 `+` Added (new file)
+  - 🟨 `~` Modified (changed line count)
+  - 🟥 `−` Deleted (file removed)
+  - `→` Renamed
+- Powered by `git diff --name-status HEAD` + `git status --porcelain` via `child_process.spawnSync`
+- Override badge (`✎`) shown when no diff present but file has an override
 
 ### Non-Goals
 - No GitHub/GitLab API integration (local git only)
@@ -306,29 +337,22 @@ Show which files changed in the current working tree (or a specific PR/commit) a
 
 ---
 
-## Phase 9 — Diagram Export (SVG / PNG)
+## Phase 11 — PNG Export ✅
 
-**Status:** Planned
+**Status:** ✅ Complete
 
 ### Goals
-Export the current graph viewport as a static image for documentation, Slack shares, or architecture documentation.
+Export the current graph viewport as a PNG image for documentation and sharing.
 
 ### Key Features
-- **Export as PNG** — rasterized at 2× for retina (via `html-to-image` or canvas capture)
-- **Export as SVG** — vector with proper node shapes and edge paths
-- Options: export "visible area only" vs "full graph (all nodes)"
-- File naming convention: `arch_{projectName}_{date}.png`
-- Exported image respects current zoom/pan state
-- Dark background preserved (not white-washed)
-- Triggered from File → Export → As Image (PNG) / As Vector (SVG)
-
-### Technical Approach
-- Use `reactflow`'s `toObject()` to get node/edge positions, then render to canvas
-- Or use `html-to-image` library on the `.react-flow__viewport` DOM element
+- **File → Export as PNG** — rasterizes the graph container via `html-to-image`
+- File naming: `archpulse_{projectName}_{date}.png`
+- Dark background preserved
+- Captures current zoom/pan state
 
 ---
 
-## Phase 10 — Multi-Project Comparison
+## Phase 12 — Multi-Project Comparison
 
 **Status:** Planned
 
@@ -340,9 +364,8 @@ Scan two or more projects simultaneously and compare their architecture health s
 - Each tab shows: project name + health summary badge strip
 - **Side-by-Side mode** — split the viewport vertically or horizontally, one graph per pane
 - **Overlay mode** — merge both graphs into one viewport; matched files (same name/path) are linked with dashed edges
-- **Comparison summary panel** — table of files that exist in both projects with health diff: "ThreeEditorImpl: 🟡 (HouseBuilder) vs 🔴 (OtherProject)"
+- **Comparison summary panel** — table of files that exist in both projects with health diff
 - Independent scan triggers per project tab
-- Health Audit Table shows a project column when multiple are loaded
 
 ### Non-Goals
 - No cross-project dependency resolution (imports stay within each project's graph)
@@ -350,7 +373,6 @@ Scan two or more projects simultaneously and compare their architecture health s
 
 ---
 
-## 10. Technical Stack
 
 | Layer | Technology |
 |:------|:----------|

@@ -20,19 +20,27 @@ const CONTROLS: ControlEntry[] = [
   { category: "Nodes", icon: "👆", action: "Click a Node", description: "Select it — highlights the corresponding row in the Health Table" },
   { category: "Nodes", icon: "👆", action: "Click Selected Node", description: "Deselect it" },
   { category: "Nodes", icon: "✊", action: "Drag a Node", description: "Move it to a new position on the canvas" },
+  { category: "Nodes", icon: "👆", action: "Double-click a Node", description: "Open the Override Modal to edit role and responsibilities" },
   // Undo / Redo
   { category: "Undo / Redo", icon: "⌨️", action: "Ctrl + Z", description: "Undo last node move" },
   { category: "Undo / Redo", icon: "⌨️", action: "Ctrl + Y  /  Ctrl + Shift + Z", description: "Redo last undone move" },
   // Canvas Controls
   { category: "Canvas Controls", icon: "⌨️", action: "Ctrl + Shift + F", description: "Fit all nodes into view" },
+  { category: "Canvas Controls", icon: "⌨️", action: "F", description: "Focus selected node — zoom in and center on it" },
   { category: "Canvas Controls", icon: "🗺️", action: "MiniMap (bottom-right)", description: "Drag within the minimap to navigate" },
   { category: "Canvas Controls", icon: "🔧", action: "Controls widget (bottom-left)", description: "Zoom in, Zoom out, Fit view, Lock" },
+  // Filtering
+  { category: "Filters", icon: "🎛️", action: "Status Filter Buttons", description: "Toggle visibility by health status — fades nodes with deselected status" },
+  { category: "Filters", icon: "🎛️", action: "All / None buttons", description: "Enable or disable all filters at once" },
   // Health Table
   { category: "Health Table", icon: "📋", action: "Click a Table Row", description: "Select the node in the canvas viewport" },
   { category: "Health Table", icon: "📋", action: "Color-coded badges", description: "Critical → Danger → Warning → Caution → Healthy" },
+  { category: "Health Table", icon: "✎", action: "Override button (hover row)", description: "Edit the role and responsibilities for a file" },
   // Menus
-  { category: "Menus", icon: "📁", action: "File → Export", description: "Export the architecture report as Markdown, CSV, or JSON" },
+  { category: "Menus", icon: "📁", action: "File → Export", description: "Export the architecture report as Markdown, CSV, JSON, or PNG" },
+  { category: "Menus", icon: "✏️", action: "Edit → Focus Selected (F)", description: "Zoom in and center on the currently selected node" },
   { category: "Menus", icon: "✏️", action: "Edit → Fit to View", description: "Fit all nodes into the viewport" },
+  { category: "Menus", icon: "👁️", action: "View → Git Diff Mode (Ctrl+D)", description: "Overlay git diff status badges on changed nodes" },
 ];
 
 const CATEGORIES = [...new Set(CONTROLS.map((c) => c.category))];
