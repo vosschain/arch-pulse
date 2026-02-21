@@ -1,10 +1,17 @@
 @import "tailwindcss";
 
+@source "../**/*.{js,ts,jsx,tsx,mdx}";
+
 :root {
   --background: #0a0a0f;
   --foreground: #e2e8f0;
   --panel-bg: #12121a;
   --border: #1e1e2e;
+}
+
+@theme inline {
+  --color-background: var(--background);
+  --color-foreground: var(--foreground);
 }
 
 * {
@@ -14,13 +21,46 @@
 body {
   background: var(--background);
   color: var(--foreground);
-  font-family: 'Inter', 'Segoe UI', system-ui, sans-serif;
+  font-family: "Inter", "Segoe UI", system-ui, sans-serif;
   margin: 0;
   padding: 0;
   overflow: hidden;
 }
 
-/* React Flow overrides */
+/* ─── God Component Pulse Keyframes ──────────────────────────────────────────── */
+
+@keyframes archpulse-glow {
+  0%, 100% {
+    box-shadow: 0 0 0px rgba(239, 68, 68, 0);
+  }
+  50% {
+    box-shadow: 0 0 20px 6px rgba(239, 68, 68, 0.75);
+  }
+}
+
+@keyframes archpulse-critical {
+  0%, 100% {
+    box-shadow: 0 0 14px 4px rgba(239, 68, 68, 0.9);
+  }
+  50% {
+    box-shadow: 0 0 28px 10px rgba(239, 68, 68, 1);
+  }
+}
+
+.node-pulse-slow {
+  animation: archpulse-glow 3s ease-in-out infinite;
+}
+
+.node-pulse-fast {
+  animation: archpulse-glow 1s ease-in-out infinite;
+}
+
+.node-pulse-critical {
+  animation: archpulse-critical 0.4s ease-in-out infinite;
+}
+
+/* ─── React Flow overrides ────────────────────────────────────────────────────── */
+
 .react-flow__background {
   background-color: var(--background) !important;
 }
@@ -34,10 +74,6 @@ body {
   stroke: #60a5fa !important;
 }
 
-.react-flow__arrowhead {
-  fill: #334155 !important;
-}
-
 .react-flow__controls {
   background: var(--panel-bg) !important;
   border: 1px solid var(--border) !important;
@@ -47,9 +83,14 @@ body {
   background: var(--panel-bg) !important;
   border-bottom: 1px solid var(--border) !important;
   color: var(--foreground) !important;
+  fill: var(--foreground) !important;
 }
 
 .react-flow__minimap {
   background: var(--panel-bg) !important;
   border: 1px solid var(--border) !important;
+}
+
+.react-flow__minimap-mask {
+  fill: rgba(0, 0, 0, 0.6) !important;
 }
