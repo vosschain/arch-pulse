@@ -159,7 +159,7 @@ A persistent sidebar table showing all files sorted by severity descending, then
 
 | Phase | Feature |
 |:------|:--------|
-| Phase 5 | Project selector with recently-scanned list |
+| Phase 5 | Menus, Undo/Redo, Project Overlay, and UX Polish ✅ |
 | Phase 6 | Manual override of file role and responsibilities |
 | Phase 7 | "Refactor Suggestions" AI panel (highlight which files to split and how) |
 | Phase 8 | Git diff mode — show which files *changed* in a PR and their health before/after |
@@ -168,7 +168,211 @@ A persistent sidebar table showing all files sorted by severity descending, then
 
 ---
 
-## 10. Technical Stack
+## Phase 5 — Menus, Undo/Redo, Project Overlay, and UX Polish ✅
+
+**Status:** Complete (Feb 21, 2026)
+**Branch:** `feature/phase5-menus-undo-overlay`
+
+### Deliverables
+
+#### 5A. Right-Click Canvas Pan
+- Pan the graph with **right-click + drag** (previously left-click)
+- Left-click is now reserved solely for node selection
+- Browser context menu suppressed on the canvas via `onContextMenu`
+- ReactFlow `panOnDrag={[2]}` — mouse button 2 = right-click
+
+#### 5B. Undo / Redo History
+- Dragging a node records the pre-drag snapshot to a history stack
+- **Ctrl+Z** undoes the last node move
+- **Ctrl+Y** / **Ctrl+Shift+Z** redoes the last undone move
+- History stacks are per-session (cleared on new scan)
+- Menu bar Edit → Undo / Redo shows greyed-out state when stack is empty
+
+#### 5C. Menu Bar (File / Edit / Help)
+A native-style dark menu bar row sits above the toolbar.
+
+**File menu:**
+- Re-scan Project (Ctrl+R) — rescans the last path
+- Export as Markdown (Ctrl+E) — risk-sorted table ideal for agents
+- Export as CSV — spreadsheet-friendly
+- Export as JSON — machine-readable full data payload
+
+**Edit menu:**
+- Undo (Ctrl+Z) — disabled when history is empty
+- Redo (Ctrl+Y) — disabled when future stack is empty
+- Fit to View (Ctrl+Shift+F) — smoothly re-fits all nodes
+
+**Help menu:**
+- Keyboard Shortcuts & Controls — scrollable visual guide modal
+- About ArchPulse — tech stack, health thresholds, credits
+
+#### 5D. Export Report
+The Markdown export generates a structured agent-friendly report:
+- Project metadata (name, path, scan time, totals)
+- Health summary table (tier counts)
+- Full file audit table sorted by **highest risk first**
+  - Columns: Rank, File, Role, Lines, Health, Imports, Top Responsibilities
+
+CSV and JSON exports follow the same risk-sorted ordering.
+
+#### 5E. Project Info Overlay
+A frosted-glass card anchored to the **top-left of the canvas** shows:
+- Project name
+- Truncated folder path
+- Total files + total lines
+- Health Badge strip (🚨 N, ⚠️ N, 🔴 N, 🟡 N, 🟢 N)
+- "X at risk" count + relative scan time ("just now", "3m ago", …)
+- `pointer-events-none` — never blocks graph interaction
+
+#### 5F. Modals
+- **About** — logo, description, tech stack table, health thresholds
+- **Controls Guide** — categorized card-by-card reference for all interactions
+
+---
+
+## Phase 6 — Focus Mode (F Key) ✅
+
+**Status:** ✅ Complete
+
+### Goals
+Let users instantly zoom in and center the canvas on a selected node using the keyboard.
+
+### Key Features
+- **F key** — when a node is selected, press F to fit-and-center the view on that node
+- Smooth animation (500 ms ease) via React Flow `fitBounds`
+- Also accessible from Edit → Focus Selected (F) in the menu bar
+- Works from both canvas selection and health table row selection
+- Disabled when no node is selected
+
+---
+
+## Phase 7 — Health Status Filters ✅
+
+**Status:** ✅ Complete
+
+### Goals
+Give users a fast way to visually isolate specific health tiers in the graph.
+
+### Key Features
+- **FilterBar** — horizontal button strip below the toolbar (only shown after a scan)
+- One toggle button per health tier: Critical / Danger / Warning / Caution / Healthy
+- Shows file count per tier; hides tiers with 0 files
+- Enabled by default; clicking a button toggles that tier off → nodes + connected edges fade to 15% opacity
+- **All** and **None** convenience buttons for quick select/deselect
+- Filter state synced to HealthTable rows (faded rows match faded nodes)
+
+---
+
+## Phase 8 — Role & Responsibility Overrides ✅
+
+**Status:** ✅ Complete
+
+### Goals
+Allow users to manually correct auto-detected file metadata when the heuristic scanner misidentifies a file's role or responsibilities.
+
+### Key Features
+- **Double-click a node** (or click the ✎ button on a HealthTable row) to open the Override Modal
+- **Role Picker** — dropdown to manually set role (component, hook, store, lib, etc.)
+- **Responsibility Editor** — editable bullet list (add/remove)
+- Overrides stored in a project-local `.archpulse.json` file (auto-created)
+- Override badge on node card (`✎` icon) and in HealthTable
+- "Reset to auto-detected" button per file
+- Overrides auto-loaded after each scan via `GET /api/overrides`
+
+### Data Model
+```json
+// .archpulse.json
+{
+  "projectPath": "C:\\_APPS\\HouseBuilder",
+  "overrides": {
+    "src/components/ThreeEditorImpl.tsx": {
+      "role": "component",
+      "responsibilities": ["3D scene rendering", "camera controls", "user input handling"]
+    }
+  }
+}
+```
+
+---
+
+## Phase 9 — Refactor Suggestions Panel ✅
+
+**Status:** ✅ Complete
+
+### Goals
+Surface concrete, actionable refactor suggestions for god components and overly-coupled files.
+
+### Key Features
+- **Suggestions tab** in right panel — second tab next to Health
+- Per-file suggestion cards showing severity icon (🚨 ⚠️ 💡), reason, and suggested action
+- Rule engine (no LLM required) evaluates 3 rules:
+  - **God Component:** >1500 lines → medium, >3000 lines → high
+  - **High Coupling:** >8 imports → low/medium
+  - **SRP Violation:** >5 responsibilities on files >500 lines → medium
+- "Jump to node" link selects the file in the canvas
+- Summary badges at panel top (high / medium / low counts)
+
+---
+
+## Phase 10 — Git Diff Mode ✅
+
+**Status:** ✅ Complete
+
+### Goals
+Show which files changed in the current working tree and highlight them on the canvas.
+
+### Key Features
+- **Git Diff Mode Toggle** — View → Git Diff Mode (Ctrl+D)
+- Changed files highlighted with colored badge on node:
+  - 🟩 `+` Added (new file)
+  - 🟨 `~` Modified (changed line count)
+  - 🟥 `−` Deleted (file removed)
+  - `→` Renamed
+- Powered by `git diff --name-status HEAD` + `git status --porcelain` via `child_process.spawnSync`
+- Override badge (`✎`) shown when no diff present but file has an override
+
+### Non-Goals
+- No GitHub/GitLab API integration (local git only)
+- No patch viewing (line-level diffs)
+
+---
+
+## Phase 11 — PNG Export ✅
+
+**Status:** ✅ Complete
+
+### Goals
+Export the current graph viewport as a PNG image for documentation and sharing.
+
+### Key Features
+- **File → Export as PNG** — rasterizes the graph container via `html-to-image`
+- File naming: `archpulse_{projectName}_{date}.png`
+- Dark background preserved
+- Captures current zoom/pan state
+
+---
+
+## Phase 12 — Multi-Project Comparison
+
+**Status:** Planned
+
+### Goals
+Scan two or more projects simultaneously and compare their architecture health side-by-side.
+
+### Key Features
+- **Project Tabs** in toolbar — add up to 4 projects via "+" button
+- Each tab shows: project name + health summary badge strip
+- **Side-by-Side mode** — split the viewport vertically or horizontally, one graph per pane
+- **Overlay mode** — merge both graphs into one viewport; matched files (same name/path) are linked with dashed edges
+- **Comparison summary panel** — table of files that exist in both projects with health diff
+- Independent scan triggers per project tab
+
+### Non-Goals
+- No cross-project dependency resolution (imports stay within each project's graph)
+- No persistent multi-project sessions
+
+---
+
 
 | Layer | Technology |
 |:------|:----------|

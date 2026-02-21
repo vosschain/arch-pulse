@@ -1,13 +1,16 @@
 "use client";
 
 import { useMemo } from "react";
-import type { ScannedFile, HealthStatus } from "@/types";
+import type { ScannedFile, HealthStatus, OverrideMap } from "@/types";
 import { getHealthEmoji } from "@/types";
 
 interface HealthTableProps {
   files: ScannedFile[];
   selectedNodeId: string | null;
+  activeFilters: Set<HealthStatus>;
+  overrides: OverrideMap;
   onRowClick: (id: string) => void;
+  onEditOverride: (id: string) => void;
 }
 
 const STATUS_ORDER: Record<HealthStatus, number> = {
@@ -31,7 +34,7 @@ const ROLE_COLORS: Record<string, string> = {
   unknown:   "text-gray-500",
 };
 
-export default function HealthTable({ files, selectedNodeId, onRowClick }: HealthTableProps) {
+export default function HealthTable({ files, selectedNodeId, activeFilters, overrides, onRowClick, onEditOverride }: HealthTableProps) {
   const sorted = useMemo(
     () => [...files].sort((a, b) => STATUS_ORDER[a.health] - STATUS_ORDER[b.health] || b.lines - a.lines),
     [files]
@@ -97,18 +100,26 @@ export default function HealthTable({ files, selectedNodeId, onRowClick }: Healt
             {sorted.map((file) => {
               const isSelected = file.id === selectedNodeId;
               const roleColor = ROLE_COLORS[file.role] ?? ROLE_COLORS.unknown;
+              const isFaded = !activeFilters.has(file.health);
+              const hasOverride = !!overrides[file.id];
               return (
                 <tr
                   key={file.id}
                   className={`
-                    border-b border-[var(--border)]/50 cursor-pointer transition-colors
+                    border-b border-[var(--border)]/50 cursor-pointer transition-all group
                     hover:bg-white/5
                     ${isSelected ? "bg-white/10" : ""}
+                    ${isFaded ? "opacity-25" : ""}
                   `}
                   onClick={() => onRowClick(file.id)}
                 >
                   <td className="p-2">
-                    <div className="font-medium text-slate-200 truncate max-w-[130px]">{file.name}</div>
+                    <div className="flex items-center gap-1">
+                      <div className="font-medium text-slate-200 truncate max-w-[110px]">{file.name}</div>
+                      {hasOverride && (
+                        <span className="text-[10px] text-sky-400" title="Has override">✎</span>
+                      )}
+                    </div>
                     <div className={`text-[10px] ${roleColor}`}>{file.role}</div>
                   </td>
                   <td className="p-2 text-right">
@@ -124,7 +135,14 @@ export default function HealthTable({ files, selectedNodeId, onRowClick }: Healt
                     </span>
                   </td>
                   <td className="p-2 text-center">
-                    {getHealthEmoji(file.health)}
+                    <div className="flex items-center justify-center gap-1">
+                      {getHealthEmoji(file.health)}
+                      <button
+                        onClick={(e) => { e.stopPropagation(); onEditOverride(file.id); }}
+                        className="opacity-0 group-hover:opacity-100 text-[10px] text-slate-500 hover:text-sky-400 transition-opacity"
+                        title="Edit override"
+                      >✎</button>
+                    </div>
                   </td>
                 </tr>
               );

@@ -23,9 +23,9 @@ const ROLE_COLORS: Record<string, { border: string; badge: string; dot: string }
 
 function getPulseClass(health: string): string {
   switch (health) {
-    case "red-slow":     return "animate-pulse-slow";
-    case "red-fast":     return "animate-pulse-fast";
-    case "red-critical": return "animate-pulse-critical";
+    case "red-slow":     return "node-pulse-slow";
+    case "red-fast":     return "node-pulse-fast";
+    case "red-critical": return "node-pulse-critical";
     default:             return "";
   }
 }
@@ -41,15 +41,36 @@ function getHealthBadge(health: string, lines: number): { label: string; cls: st
   }
 }
 
+// ─── Diff badge ──────────────────────────────────────────────────────────────
+
+function DiffBadge({ status }: { status: string }) {
+  const map: Record<string, { label: string; cls: string }> = {
+    added:    { label: "+", cls: "bg-emerald-500/80 text-white" },
+    modified: { label: "~", cls: "bg-amber-500/80 text-white" },
+    deleted:  { label: "−", cls: "bg-red-500/80 text-white" },
+    renamed:  { label: "→", cls: "bg-sky-500/80 text-white" },
+  };
+  const b = map[status];
+  if (!b) return null;
+  return (
+    <span className={`absolute top-1.5 right-1.5 w-4 h-4 rounded-full text-[9px] font-bold flex items-center justify-center ${b.cls}`}>
+      {b.label}
+    </span>
+  );
+}
+
 // ─── FileNode Component ───────────────────────────────────────────────────────
 
 interface FileNodeData {
   file: ScannedFile;
   isSelected: boolean;
+  diffStatus?: string | null;
+  hasOverride?: boolean;
+  isFaded?: boolean;
 }
 
 function FileNode({ data }: NodeProps<FileNodeData>) {
-  const { file, isSelected } = data;
+  const { file, isSelected, diffStatus, hasOverride } = data;
   const colors = ROLE_COLORS[file.role] ?? ROLE_COLORS.unknown;
   const pulseClass = getPulseClass(file.health);
   const healthBadge = getHealthBadge(file.health, file.lines);
@@ -68,6 +89,10 @@ function FileNode({ data }: NodeProps<FileNodeData>) {
         boxShadow: isSelected ? `0 0 0 2px ${colors.border}40` : undefined,
       }}
     >
+      {diffStatus && <DiffBadge status={diffStatus} />}
+      {hasOverride && !diffStatus && (
+        <span className="absolute top-1.5 right-1.5 text-[10px] text-sky-400 leading-none" title="Has role/responsibility override">✎</span>
+      )}
       {/* Source handle (top) */}
       <Handle type="target" position={Position.Top} className="!w-2 !h-2 !bg-slate-600 !border-slate-500" />
 
